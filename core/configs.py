@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #----------------------------------------------------------------------------
 # ModRana config files handling
@@ -20,207 +19,194 @@
 #---------------------------------------------------------------------------
 import os
 import shutil
-from modules.configobj.configobj import ConfigObj
+from configobj import ConfigObj
 
-CONFIGS = ["map_config.conf", "user_config.conf"]
+import logging
+log = logging.getLogger("core.config")
 
+MAP_CONFIG_FILE = "map_config.conf"
+USER_CONFIG_FILE = "user_config.conf"
+CONFIGS = [MAP_CONFIG_FILE, USER_CONFIG_FILE]
+DEFAULT_CONFIGS_DIR = "data/default_configuration_files"
 
-class Configs:
-  def __init__(self, modrana):
-    self.modrana = modrana
-    self.paths = modrana.paths
+class Configs(object):
+    def __init__(self, configs_dir, default_configs_dir=DEFAULT_CONFIGS_DIR):
+        self._configs_dir = configs_dir
+        self._default_configs_dir = default_configs_dir
 
-    self.userConfig = {}
-    self.mapConfig = {}
-    self.mapLayers = {}
-    self.mapGroups = {}
+        self._user_config = {}
+        self._map_config = {}
 
-    # check if config files exist
-    self.checkConfigFilesExist()
+        # check if config files exist
+        self.check_config_files_exist()
 
-  def checkConfigFilesExist(self):
-    """
-    assure that configuration files are available in the profile folder
-    - provided the default configuration files exist and that the profile folder
-    exists and is writable
-    """
-    profilePath = self.modrana.getProfilePath()
-    for config in CONFIGS:
-      configPath = os.path.join(profilePath, config)
-      if not os.path.exists(configPath):
+    def check_config_files_exist(self):
+        """Assure that configuration files are available.
+
+        Check that the default configuration files exist and that the profile folder
+        exists and is writable.
+
+        :returns: list of config file names found
+        :rtype: list
+        """
+        existing_configs = []
+        for config in CONFIGS:
+            configPath = os.path.join(self._configs_dir, config)
+            if os.path.exists(configPath):
+                existing_configs.append(config)
+            else:
+                try:
+                    source = os.path.join(self._default_configs_dir, config)
+                    log.info(" ** copying default configuration file to profile folder")
+                    log.info(" ** from: %s", source)
+                    log.info(" ** to: %s", configPath)
+                    shutil.copy(source, configPath)
+                    log.info(" ** default config file copying DONE")
+                except Exception:
+                    log.exception("copying default configuration file to profile folder failed")
+
+        return existing_configs
+
+    def _safe_parse(self, config_path):
+        parsed_config = None
         try:
-          source = os.path.join("data/default_configuration_files", config)
-          print(" ** config:copying default configuration file to profile folder")
-          print(" ** from: %s" % source)
-          print(" ** to: %s" % configPath)
-          shutil.copy(source, configPath)
-          print(" ** DONE")
-        except Exception, e:
-          print("config: copying default configuration file to profile folder failed", e)
+            parsed_config = ConfigObj(config_path)
+        except:
+            log.exception("parsing of config file failed: %s", config_path)
+        return parsed_config
 
-  def upgradeConfigFiles(self):
-    """
-    upgrade config files, if needed
-    """
-    upgradeCount = 0
-    profilePath = self.modrana.getProfilePath()
-    print("modRana configs: upgrading configuration files in %s" % profilePath)
-    # first check the configs actually exist
-    self.checkConfigFilesExist()
+    def upgrade_config_files(self):
+        """Upgrade config files (if needed)."""
+        upgrade_count = 0
+        log.info("upgrading modRana configuration files in %s", self._configs_dir)
+        # first check the configs actually exist
+        self.check_config_files_exist()
 
-    for config in CONFIGS:
-      # load default config
-      defaultConfigPath = os.path.join("data/default_configuration_files", config)
-      installedConfigPath = os.path.join(profilePath, config)
-      try:
-        defaultRev = int(ConfigObj(defaultConfigPath).get("revision", 0))
-        installedRev = int(ConfigObj(installedConfigPath).get("revision", 0))
+        for config in CONFIGS:
+            # try to upgrade the config
+            default_config_path = os.path.join(self._default_configs_dir, config)
+            config_path = os.path.join(self._configs_dir, config)
+            try:
+                # revision of default config
+                default_config = self._safe_parse(default_config_path)
+                default_rev = 0
+                if default_config is not None:
+                    default_rev = int(default_config.get("revision", 0))
 
-        if defaultRev > installedRev: # is installed config is outdated ?
-          print('modRana configs: %s is outdated, upgrading' % config)
-          # rename installed config as the user might have modified it
-          newName = "%s_old_revision_%d" % (config, installedRev)
-          newPath = os.path.join(profilePath, newName)
-          shutil.move(installedConfigPath, newPath)
-          print('modRana configs: old file renamed to %s' % newName)
+                # revision of installed config
+                installed_config = self._safe_parse(config_path)
+                installed_rev = 0
+                if installed_config is not None:
+                    installed_rev = int(installed_config.get("revision", 0))
 
-          # install the (newer) default config
-          shutil.copy(defaultConfigPath, profilePath)
+                if default_rev > installed_rev:  # is the installed config outdated ?
+                    log.info('config file %s is outdated, upgrading', config)
+                    # rename installed config as the user might have modified it
+                    new_name = "%s_old_revision_%d" % (config, installed_rev)
+                    new_path = os.path.join(self._configs_dir, new_name)
+                    shutil.move(config_path, new_path)
+                    log.info('old config file renamed to %s' % new_name)
 
-          # update upgrade counter
-          upgradeCount+=1
-      except Exception ,e:
-        print("modRana configs: upgrading config file: %s failed" % config)
-        print(e)
-    if upgradeCount:
-      print("modRana configs: %d configuration files upgraded" % upgradeCount)
-    else:
-      print("modRana configs: no configuration files needed upgrade")
+                    # install the (newer) default config
+                    shutil.copy(default_config_path, self._configs_dir)
 
-  def loadAll(self):
-    """
-    load all configuration files
-    """
-    self.loadMapConfig()
-    self.loadUserConfig()
+                    # update upgrade counter
+                    upgrade_count += 1
+            except Exception:
+                log.exception("upgrading config file: %s failed", config)
 
-  def getUserConfig(self):
-    return self.userConfig
-
-  def loadUserConfig(self):
-    """load the user oriented configuration file."""
-    path = os.path.join(self.modrana.getProfilePath(), "user_config.conf")
-
-    try:
-      config = ConfigObj(path)
-      if 'enabled' in config:
-        if config['enabled'] == 'True':
-          self.userConfig = config
-
-    except Exception, e:
-      print "modRana configs: loading user_config.conf failed"
-      print "modRana configs: check the syntax"
-      print "modRana configs: and if the config file is present in the main directory"
-      print "modRana configs: this happened:\n%s\nconfig: that's all" % e
-
-
-  def getMapLayers(self):
-    """
-    get the filtered & tweaked map layer info from the map config
-    """
-#    print "MAP LAYERS"
-#    for value in self.mapLayers:
-#      print value
-#      print self.mapLayers[value]
-    return self.mapLayers
-
-  def getMapGroups(self):
-    """get the dictionary with map layer groups"""
-    return self.mapGroups
-
-  def getMapConfig(self):
-    """
-    get the "raw" map config
-    """
-    return self.mapConfig
-
-  def loadMapConfig(self):
-    """
-    load the map configuration file
-    """
-
-    configVariables = {
-      'label':'label',
-      'url':'tiles',
-      'max_zoom':'maxZoom',
-      'min_zoom':'minZoom',
-      'type':'type',
-      'folder_prefix':'folderPrefix',
-      'coordinates':'coordinates',
-      }
-
-    def allNeededIn(needed, dict):
-      """
-      check if all required values are filled in
-      """
-      # TODO: optimize this ?
-      for key in needed:
-        if key in dict:
-          continue
+        if upgrade_count:
+            log.info("%d configuration files upgraded", upgrade_count)
         else:
-          return False
-      return True
+            log.info("no configuration files needed upgrade")
 
-    mapConfigPath = os.path.join(self.modrana.getProfilePath(),'map_config.conf')
-    # check if the map configuration file is installed
-    if not os.path.exists(mapConfigPath):
-      # nothing in profile folder -> try to use the default config
-      print("modRana configs: no config in profile folder, using default map layer configuration file")
-      mapConfigPath = os.path.join("data/default_configuration_files",'map_config.conf')
-      if not os.path.exists(mapConfigPath):
-        # no map layer config available
-        print("modRana configs: map layer configuration file not available")
-        return False
+    def load_all(self):
+        """"Load all configuration files.
 
-    config = {}
-    mapLayers = {}
-    mapGroups = {}
-    try:
-      config = ConfigObj(mapConfigPath)
-      for layerID in config['layers'].keys():
-        #layerID = str(layerID) # make hashable
-        layer = config['layers'][layerID]
-        tempDict = {}
-        if allNeededIn(configVariables.keys(), layer.keys()): # check if all needed keys are available
-          tempDict = {}
-          for var in configVariables:
-            #tempDict[configVariables[var]] = config[layer][var]
-            tempDict[configVariables[var]] = layer[var]
-          tempDict['minZoom'] = int(tempDict['minZoom']) # convert strings to integers
-          tempDict['maxZoom'] = int(tempDict['maxZoom'])
-          tempDict['group'] = layer.get('group', None)
-          tempDict['icon'] = layer.get('icon', "generic")
+        :returns: True if all configs were loaded successfully, False otherwise
+        :rtype: bool
+        """
 
+        return all((self.load_map_config(), self.load_user_config()))
+
+    @property
+    def user_config(self):
+        """The "raw" user config."""
+        return self._user_config
+
+    def load_user_config(self):
+        """Load the user oriented configuration file."""
+
+        config_path = os.path.join(self._configs_dir, USER_CONFIG_FILE)
+        if not os.path.isfile(config_path):
+            return False
+
+        try:
+            config = ConfigObj(config_path)
+            if 'enabled' in config:
+                if config['enabled'] == 'True':
+                    self._user_config = config
+            return True
+        except Exception:
+            log.exception("loading user_config.conf from %s failed, check the syntax\n"
+                          "and if the config file is present in the modRana profile directory.",
+                          self._configs_dir)
+            return False
+
+    @property
+    def map_config(self):
+        """The "raw" map config."""
+        return self._map_config
+
+    def load_map_config(self):
+        """Load the map configuration file."""
+
+        config_variables = {
+            'label': 'label',
+            'url': 'tiles',
+            'max_zoom': 'max_zoom',
+            'min_zoom': 'min_zoom',
+            'type': 'type',
+            'folder_prefix': 'folderPrefix',
+            'coordinates': 'coordinates',
+        }
+
+        def all_needed_in(needed, layer_dict):
+            """Check if all required values are filled in."""
+            # TODO: optimize this ?
+            for key in needed:
+                if key in layer_dict:
+                    continue
+                else:
+                    return False
+            return True
+
+        map_config_path = os.path.join(self._configs_dir, MAP_CONFIG_FILE)
+        default_map_config_path = os.path.join(DEFAULT_CONFIGS_DIR, MAP_CONFIG_FILE)
+        map_config = None
+        # check if the map configuration file is installed
+        if os.path.exists(map_config_path):
+            map_config = self._safe_parse(map_config_path)
+        # installed config missing or invalid -> try to use the default config
+        if map_config is None:
+            log.error("installed map_config.conf unusable, falling back to default map_config.conf")
+            map_config = self._safe_parse(default_map_config_path)
+        if map_config:
+            self._map_config = map_config
+            return True
         else:
-          print("modRana configs: layer %s is badly defined/formatted" % layerID)
+            log.critical("even default map_config.conf is missing or invalid")
+            return False
 
-        mapLayers[layerID] = tempDict
+    @property
+    def user_agent(self):
+        """Returns the default modRana User-Agent.
 
-      # load groups
-      mapGroups = config.get('groups', {})
+        :returns: default modRana user agent
+        :rtype: str
+        """
 
-    except Exception, e:
-      print("modRana configs: loading map_config.conf failed: %s" % e)
-      return False
-
-    self.mapConfig = config
-    self.mapLayers = mapLayers
-    self.mapGroups = mapGroups
-    return True
-
-  def getUserAgent(self):
-    """return the default modRana User-Agent"""
-    #debugging:
-    # return "Mozilla/5.0 (compatible; MSIE 5.5; Linux)"
-    #TODO: setting from configuration file, CLI & interface
-    return "modRana flexible GPS navigation system (compatible; Linux)"
+        #debugging:
+        # return "Mozilla/5.0 (compatible; MSIE 5.5; Linux)"
+        #TODO: setting from configuration file, CLI & interface
+        return "modRana flexible GPS navigation system (compatible; Linux)"

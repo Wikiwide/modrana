@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=modRana
+Exec=harbour-modrana
+Icon=harbour-modrana
+X-Nemo-Application-Type=silica-qt5

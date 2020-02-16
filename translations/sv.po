@@ -1,0 +1,55 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-05-16 23:25+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Åke Engelbrektson, 2017\n"
+"Language-Team: Swedish (https://www.transifex.com/martink/teams/81256/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: core/instructions_generator.py:38
+msgid "turn slightly left"
+msgstr "sväng lätt vänster"
+
+#: core/instructions_generator.py:39
+msgid "turn left"
+msgstr "sväng vänster"
+
+#: core/instructions_generator.py:40
+msgid "turn sharply left"
+msgstr "sväng skarpt vänster"
+
+#: core/instructions_generator.py:41
+msgid "make a U-turn"
+msgstr "gör en u-sväng"
+
+#: core/instructions_generator.py:42
+msgid "turn sharply right"
+msgstr "sväng skarpt höger"
+
+#: core/instructions_generator.py:43
+msgid "turn right"
+msgstr "sväng höger"
+
+#: core/instructions_generator.py:44
+msgid "turn slightly right"
+msgstr "sväng lätt höger"
+
+#: core/instructions_generator.py:45
+msgid "head straightforward"
+msgstr "kör rakt fram"
+
+#: modules/mod_info.py:67
+msgid "talk.maemo.org thread"
+msgstr "talk.maemo.org"

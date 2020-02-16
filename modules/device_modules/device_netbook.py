@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #----------------------------------------------------------------------------
 # An a generic netbook device module.
@@ -20,35 +19,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #---------------------------------------------------------------------------
-from base_device_module import deviceModule
+from modules.device_modules.base_device_module import DeviceModule
+from core.constants import DEVICE_TYPE_DESKTOP
 
-def getModule(m,d,i):
-  return(device_netbook(m,d,i))
 
-class device_netbook(deviceModule):
-  """A netbook modRana device-specific module"""
-  
-  def __init__(self, m, d, i):
-    deviceModule.__init__(self, m, d, i)
+def getModule(*args, **kwargs):
+    return DeviceNetbook(*args, **kwargs)
 
-  def getDeviceIDString(self):
-    return "netbook"
 
-  def getDeviceName(self):
-    return "A generic netbook"
+class DeviceNetbook(DeviceModule):
+    """A netbook modRana device-specific module"""
 
-  def getWinWH(self):
-    return (1024,600)
+    def __init__(self, *args, **kwargs):
+        DeviceModule.__init__(self, *args, **kwargs)
 
-  def startInFullscreen(self):
-    return False
+    @property
+    def device_id(self):
+        return "netbook"
 
-  def getSupportedGUIModuleIds(self):
-    return ["GTK", "QML"]
-    
+    @property
+    def device_name(self):
+        return "A generic netbook"
 
-if(__name__ == "__main__"):
-  a = device_example({}, {})
-  a.update()
-  a.update()
-  a.update()
+    @property
+    def window_wh(self):
+        return 1024, 600
+
+    @property
+    def start_in_fullscreen(self):
+        return False
+
+    @property
+    def supported_gui_module_ids(self):
+        return ["GTK", "qt5"]
+
+    @property
+    def device_type(self):
+        return DEVICE_TYPE_DESKTOP

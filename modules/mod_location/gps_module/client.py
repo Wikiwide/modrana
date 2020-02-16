@@ -15,13 +15,14 @@ class json_error:
         self.data = data
         self.explanation = explanation
 
-class gpscommon:
-    "Isolate socket handling and buffering from the protcol interpretation."
+class gpscommon(object):
+    """Isolate socket handling and buffering from the protocol interpretation."""
     def __init__(self, host="127.0.0.1", port=GPSD_PORT, verbose=0):
         self.sock = None        # in case we blow up in connect
         self.linebuffer = ""
         self.verbose = verbose
-        self.connect(host, port)
+        if host is not None:
+            self.connect(host, port)
 
     def connect(self, host, port):
         """Connect to a host on a given port.
@@ -36,7 +37,7 @@ class gpscommon:
                 host, port = host[:i], host[i+1:]
             try: port = int(port)
             except ValueError:
-                raise socket.error, "nonnumeric port"
+                raise socket.error("nonnumeric port")
         #if self.verbose > 0:
         #    print 'connect:', (host, port)
         msg = "getaddrinfo returns an empty list"
@@ -47,13 +48,15 @@ class gpscommon:
                 self.sock = socket.socket(af, socktype, proto)
                 #if self.debuglevel > 0: print 'connect:', (host, port)
                 self.sock.connect(sa)
-            except socket.error, msg:
+            except socket.error:
+                import sys
+                msg = sys.exc_info()[1]
                 #if self.debuglevel > 0: print 'connect fail:', (host, port)
                 self.close()
                 continue
             break
         if not self.sock:
-            raise socket.error, msg
+            raise socket.error(msg)
 
     def close(self):
         if self.sock:
@@ -77,7 +80,7 @@ class gpscommon:
         eol = self.linebuffer.find('\n')
         if eol == -1:
             frag = self.sock.recv(4096)
-            self.linebuffer += frag
+            self.linebuffer += frag.decode("ascii")
             if self.verbose > 1:
                 sys.stderr.write("poll: read complete.\n")
             if not self.linebuffer:
@@ -117,7 +120,7 @@ class gpscommon:
         "Ship commands to the daemon."
         if not commands.endswith("\n"):
             commands += "\n"
-        self.sock.send(commands)
+        self.sock.send(commands.encode("utf-8"))
 
 WATCH_ENABLE	= 0x000001	# enable streaming
 WATCH_DISABLE	= 0x000002	# disable watching
@@ -137,12 +140,14 @@ class gpsjson(gpscommon):
     def unpack(self, buf):
         try:
             self.data = dictwrapper(json.loads(buf.strip(), encoding="ascii"))
-        except ValueError, e:
+        except ValueError:
+            import sys
+            e = sys.exc_info()[1]
             raise json_error(buf, e.args[0])
         # Should be done for any other array-valued subobjects, too.
         # This particular logic can fire on SKY or RTCM2 objects.
         if hasattr(self.data, "satellites"):
-            self.data.satellites = map(lambda x: dictwrapper(x), self.data.satellites)
+            self.data.satellites = map(dictwrapper, self.data.satellites)
 
     def stream(self, flags=0, devpath=None):
         "Control streaming reports from the daemon,"
@@ -159,7 +164,7 @@ class gpsjson(gpscommon):
             if flags & WATCH_SCALED:
                 arg += ',"scaled":false'
             if flags & WATCH_TIMING:
-                arg += ',"scaled":false'
+                arg += ',"timing":false'
         else: # flags & WATCH_ENABLE:
             arg = '?WATCH={"enable":true'
             if flags & WATCH_JSON:
@@ -173,12 +178,12 @@ class gpsjson(gpscommon):
             if flags & WATCH_SCALED:
                 arg += ',"scaled":true'
             if flags & WATCH_TIMING:
-                arg += ',"scaled":true'
+                arg += ',"timing":true'
             if flags & WATCH_DEVICE:
                 arg += ',"device":"%s"' % devpath
         return self.send(arg + "}")
 
-class dictwrapper:
+class dictwrapper(object):
     "Wrapper that yields both class and dictionary behavior,"
     def __init__(self, ddict):
         self.__dict__ = ddict
@@ -199,7 +204,7 @@ class dictwrapper:
     __repr__ = __str__
 
 #
-# Someday a cleaner Python iterface using this machinery will live here
+# Someday a cleaner Python interface using this machinery will live here
 #
 
 # End

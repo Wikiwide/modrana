@@ -1,0 +1,50 @@
+# remove the GUI modules that don't run on Sailfish
+modules/gui_modules/gui_gtk.py
+modules/gui_modules/gui_qml
+# remove QML unit tests
+qml/tests
+# remove some bigger device modules that are not needed on sailfish
+modules/device_modules/device_n900.py
+modules/device_modules/device_n9.py
+modules/device_modules/n900_maemo5_portrait.py
+modules/device_modules/device_bb10.py
+modules/device_modules/device_nemo.py
+modules/device_modules/device_neo.py
+modules/device_modules/device_android.py
+modules/device_modules/device_android_chroot.py
+# other modules that are currently not needed on Sailfish
+modules/pyrender
+modules/mod_route/monav_armv7
+modules/mod_route/monav_amd64
+modules/mod_route/monav_i386
+# backported modules not needed on Python 3.4
+# (they are already part of the standard library)
+#core/backports
+# bundled modules not needed on Sailfish OS
+# as they are already available by default
+# or not needed by the Qt 5 GUI
+core/bundle/simplejson
+core/bundle/pycha
+backports/urllib3_python25
+# startups scripts that are not needed
+run/fremantle_gtk
+run/fremantle_qml
+run/harmattan
+run/neo
+run/pc
+run/echo_qt5.sh
+# also we don't really need the test_geo.py script
+core/other/test_geo.py
+# remove any PNG icons from the themes (modRana now uses SVG icons exclusively)
+themes/default/*.png
+themes/silica/*.png
+themes/night/*.png
+themes/red/*.png
+# remove non-Silica backends from UC
+qml/universal_components/ubuntu
+qml/universal_components/controls
+qml/universal_components/glacier
+# remove UC docs
+qml/universal_components/docs
+# remove an executable UC utility script
+qml/universal_components/sync_qmldir.sh

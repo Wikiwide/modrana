@@ -1,3 +1,10 @@
 #! /bin/sh
-cd /usr/share/modrana/
-python modrana.py neo
+#
+# NOTE: How to run this script
+# run this script from a directory containing the modrana.py file
+# Example:
+# # cd modrana
+# # ./run/neo
+
+export DISPLAY=:0.0
+fsoraw -f -r CPU 'python modrana.py'

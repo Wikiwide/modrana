@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #----------------------------------------------------------------------------
 # ModRana generic exceptions (modules might have their own
@@ -21,9 +20,10 @@
 #---------------------------------------------------------------------------
 
 class FileNotFound(BaseException):
-  """file was not found on specified path - this relates mainly
-  to file reading operations"""
-  pass
+    """file was not found on specified path - this relates mainly
+    to file reading operations"""
+    pass
+
 
 class FileAccessPermissionDenied(BaseException):
-  pass
+    pass
